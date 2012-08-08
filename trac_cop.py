@@ -56,10 +56,7 @@ def get_comment(msg):
     Return the comment to be appended to the ticket.
     """
     if bcc_msg(msg):
-        # because we bcc'd it, find a text/plain version
-        for part in msg.walk():
-            if part.get_content_type() == 'text/plain':
-                return part.get_payload()
+        return msg.get_payload()
     elif to_msg(msg):
         # emails addressed to trac via the 'To' header are always
         # plain text, so no need to check any of that.
