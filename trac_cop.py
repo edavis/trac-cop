@@ -7,7 +7,7 @@ import sys
 import email
 import argparse
 from trac.ticket import Ticket
-from trac.env import Environment
+from trac.env import open_environment
 
 bcc_msg = lambda msg: 'bcc' in msg and 'trac' in msg['bcc']
 to_msg = lambda msg: 'to' in msg and 'trac' in msg['to']
@@ -72,7 +72,7 @@ def main():
     args = parser.parse_args()
 
     msg = email.message_from_file(sys.stdin)
-    env = Environment(args.env)
+    env = open_environment(args.env)
     ticket = get_ticket(env, msg)
 
     if ticket is not None:
