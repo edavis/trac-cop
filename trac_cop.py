@@ -9,14 +9,14 @@ import argparse
 from trac.ticket import Ticket
 from trac.env import open_environment
 
-bcc_msg = lambda msg: 'bcc' in msg and 'trac' in msg['bcc']
+bcc_msg = lambda msg: 'delivered-to' in msg and 'trac' in msg['delivered-to']
 to_msg = lambda msg: 'to' in msg and 'trac' in msg['to']
 
 def get_ticket_id(msg):
     """
-    Get the ticket ID out of the `To` header.
+    Get the ticket ID out of the `To` or `Delivered-To` header.
     """
-    match = re.search('^trac\+(\d+)@', msg['bcc'] or msg['to'])
+    match = re.search('^trac\+(\d+)@', msg['delivered-to'] or msg['to'])
     if match:
         return int(match.group(1))
 
@@ -28,7 +28,7 @@ def get_ticket(env, msg):
     if ticket_id is not None:
         return Ticket(env, ticket_id)
     else:
-        raise SystemExit("Could not find ticket ID in '%s'" % msg['bcc'] or msg['to'])
+        raise SystemExit("Could not find ticket ID in '%s'" % msg['delivered-to'] or msg['to'])
 
 def get_author(msg):
     """
