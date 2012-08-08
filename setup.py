@@ -13,8 +13,8 @@ setup(
     py_modules       = ["trac_cop"],
     install_requires = ["Trac==0.12.3"],
     entry_points     = {
-        "console_scripts": {
+        "console_scripts": [
             "cop.py=trac_cop:main",
-        },
+        ],
     },
 )
