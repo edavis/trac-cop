@@ -12,11 +12,11 @@ from trac.env import open_environment
 bcc_msg = lambda msg: 'delivered-to' in msg and 'trac' in msg['delivered-to']
 to_msg = lambda msg: 'to' in msg and 'trac' in msg['to']
 
-def get_ticket_id(msg):
+def get_ticket_id(address):
     """
     Get the ticket ID out of the `To` or `Delivered-To` header.
     """
-    match = re.search('^trac\+(\d+)@', msg['delivered-to'] or msg['to'])
+    match = re.search('^trac\+(\d+)@', address)
     if match:
         return int(match.group(1))
 
@@ -24,11 +24,12 @@ def get_ticket(env, msg):
     """
     Return the appropriate Trac ticket.
     """
-    ticket_id = get_ticket_id(msg)
+    address = msg['delivered-to'] or msg['to']
+    ticket_id = get_ticket_id(address)
     if ticket_id is not None:
         return Ticket(env, ticket_id)
     else:
-        raise SystemExit("Could not find ticket ID in '%s'" % msg['delivered-to'] or msg['to'])
+        raise SystemExit("Could not find ticket ID in '%s'" % address)
 
 def get_author(msg):
     """
