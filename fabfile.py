@@ -16,5 +16,6 @@ def deploy(commit="HEAD"):
     with cd("/srv/environments/trac"):
         run("tar xf /tmp/trac-cop.tar.gz")
         run("bin/pip install -U --no-deps ./trac-cop/")
+        run("bin/pip install ./trac-cop/")
     run("rm -rf trac-cop")
     run("rm -f /tmp/trac-cop.tar.gz")
