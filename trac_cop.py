@@ -41,7 +41,7 @@ def get_author(msg):
     """
     if bcc_msg(msg):
         return 'Eric Davis'
-    if to_msg(msg):
+    elif to_msg(msg):
         payload = msg.get_payload()
         match = re.search('(From|By): ?([^\n]+)', payload, re.I)
         if match:
