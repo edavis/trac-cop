@@ -16,7 +16,7 @@ def get_ticket_id(msg):
     """
     Get the ticket ID out of the `To` header.
     """
-    match = re.search('^trac\+(\d+)@', msg['to'])
+    match = re.search('^trac\+(\d+)@', msg['bcc'] or msg['to'])
     if match:
         return int(match.group(1))
 
