@@ -27,6 +27,8 @@ def get_ticket(env, msg):
     ticket_id = get_ticket_id(msg)
     if ticket_id is not None:
         return Ticket(env, ticket_id)
+    else:
+        raise SystemExit("Could not find ticket ID in '%s'" % msg['bcc'] or msg['to'])
 
 def get_author(msg):
     """
@@ -75,4 +77,7 @@ def main():
     if ticket is not None:
         author = get_author(msg)
         comment = get_comment(msg)
-        ticket.save_changes(author, comment)
+        if comment and author:
+            ticket.save_changes(author, comment)
+        else:
+            raise SystemExit("Author and/or comment missing")
