@@ -29,6 +29,7 @@ def get_payload(msg):
     for part in msg.walk():
         if part.get_content_type() == 'text/plain':
             return part.get_payload()
+    return "Couldn't find text/plain content. Here's the Message-ID: <%s>" % msg['message-id']
 
 def extract_meta_info(msg, key=None):
     """

@@ -36,3 +36,7 @@ def test_get_comment():
 
     msg = open_email('test_emails/forward.eml')
     eq_('Content here', trac_cop.get_comment(msg))
+
+    # If no text/plain part, say as much and include the Message-ID
+    msg = open_email('test_emails/no_text_plain.eml')
+    assert_in(msg['message-id'], trac_cop.get_comment(msg))
