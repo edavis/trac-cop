@@ -9,68 +9,97 @@ import argparse
 from trac.ticket import Ticket
 from trac.env import open_environment
 
-bcc_msg = lambda msg: 'delivered-to' in msg and 'trac' in msg['delivered-to']
-to_msg = lambda msg: 'to' in msg and 'trac' in msg['to']
+START_MARKER = '-- begin'
+END_MARKER = '-- end'
 
 def get_ticket_id(address):
     """
-    Get the ticket ID out of the `To` or `Delivered-To` header.
+    Get the ticket ID out of the address.
     """
     match = re.search('^trac\+(\d+)@', address)
     if match:
         return int(match.group(1))
+    else:
+        raise Exception("Could not find ticket ID in '%s'" % address)
+
+def get_payload(msg):
+    """
+    Return the first text/plain payload.
+    """
+    for part in msg.walk():
+        if part.get_content_type() == 'text/plain':
+            return part.get_payload()
+
+def extract_meta_info(msg, key=None):
+    """
+    Extract metainfo from the payload.
+
+    Format is:
+    -- begin
+    key: value
+    key2: value
+    -- end
+
+    Look in 'test_emails/' for examples.
+
+    Return a dictionary of those keys and values.
+    """
+    payload = get_payload(msg)
+    in_meta = False
+    values = {}
+    for line in payload.split('\n'):
+        if line.startswith(START_MARKER):
+            in_meta = True
+            continue
+        if in_meta and re.search('^([^:]+): ?(.+)$', line):
+            key, value = line.split(': ', 1)
+            values[key] = value
+            continue
+        if line.startswith(END_MARKER):
+            break
+
+    return values or None
 
 def get_ticket(env, msg):
     """
     Return the appropriate Trac ticket.
     """
-    address = msg['delivered-to'] or msg['to']
-    ticket_id = get_ticket_id(address)
-    if ticket_id is not None:
-        return Ticket(env, ticket_id)
-    else:
-        raise SystemExit("Could not find ticket ID in '%s'" % address)
+    ticket_id = get_ticket_id(msg['delivered-to'])
+    return Ticket(env, ticket_id)
 
 def get_author(msg):
     """
     Determine the author of the comment.
-
-    If 'trac@transparentnevada.com' is in the BCC field, I sent it so
-    use my name.
-
-    If 'trac@transparentnevada.com' is in the To field, I'm forwarding
-    it from somebody else. Look for either 'By:' or 'From:' in the
-    message body and use that.
     """
-    if bcc_msg(msg):
+    # If where it was delivered is not where it was sent (i.e., it's a
+    # BCC), use my name.
+    if msg['delivered-to'] != msg['to']:
         return 'Eric Davis'
-    elif to_msg(msg):
-        payload = msg.get_payload()
-        match = re.search('(From|By): ?([^\n]+)', payload, re.I)
-        if match:
-            return match.group(2)
-        else:
-            return '(Unknown)'
+    # If it was sent directly to Trac, parse out the name.
     else:
-        return '(Unknown)'
+        meta = extract_meta_info(msg)
+        # Had a metainfo section but no 'Author' key
+        if meta is not None:
+            return meta.get('Author', '(no author given)')
+        # Didn't have any metainfo
+        else:
+            return '(no metainfo given)'
 
 def get_comment(msg):
     """
     Return the comment to be appended to the ticket.
     """
-    if bcc_msg(msg):
-        for part in msg.walk():
-            if part.get_content_type() == 'text/plain':
-                return part.get_payload()
-        else:
-            return "No content found. Message ID: '%s'" % msg['message-id']
-    elif to_msg(msg):
-        # emails addressed to trac via the 'To' header are always
-        # plain text, so no need to check any of that.
-        payload = msg.get_payload()
-        return '\n\n'.join(payload.split('\n\n')[1:])
+    payload = get_payload(msg)
+    if '-- end' in payload:
+        idx = payload.find(END_MARKER) + len('-- end\n\n')
+        return payload[idx:].strip()
+    else:
+        return payload.strip()
 
 def main():
+    """
+    Entry point for cop.py
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--env', help="path of Trac environment")
     args = parser.parse_args()
